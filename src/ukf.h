@@ -31,9 +31,6 @@ public:
   ///* predicted sigma points matrix
   MatrixXd Xsig_pred_;
 
-  ///* time when the state is true, in us
-  long long time_us_;
-
   ///* Process noise standard deviation longitudinal acceleration in m/s^2
   double std_a_;
 
@@ -106,9 +103,9 @@ public:
    */
   void UpdateRadar(MeasurementPackage meas_package);
 
-  void GenerateSigmaPoints(MatrixXd* Xsig_out);
-  void AugmentedSigmaPoints(MatrixXd* Xsig_out);
-  void SigmaPointPrediction(MatrixXd* Xsig_out);
+  void GenerateSigmaPoints();
+  void AugmentedSigmaPoints();
+  void SigmaPointPrediction();
   void PredictMeanAndCovariance(VectorXd* x_pred, MatrixXd* P_pred);
   void PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out);
   void UpdateState(VectorXd* x_out, MatrixXd* P_out);

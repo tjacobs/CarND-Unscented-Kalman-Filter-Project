@@ -52,8 +52,6 @@ UKF::UKF() {
   // Predicted sigma points matrix
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_x_ + 1);
 
-  time_us_;
-
   // Augmented dimension
   n_aug_ = 7;
 
@@ -83,28 +81,33 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
     // First measurement
     x_ << 0, 0, 0, 0, 0;
 
+    // Init covariance matrix
+    P_ << 1, 0, 0, 0, 0,
+          0, 1, 0, 0, 0,
+          0, 0, 1, 0, 0,
+          0, 0, 0, 1, 0,
+          0, 0, 0, 0, 1;
+
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
       */
-/*      float rho = measurement_pack.raw_measurements_[0];
+      float rho = measurement_pack.raw_measurements_[0];
       float phi = measurement_pack.raw_measurements_[1];
       float rho_dot = measurement_pack.raw_measurements_[2];
       float x = rho * cos(phi); 
       float y = rho * sin(phi);
       float vx = rho_dot * cos(phi);
       float vy = rho_dot * sin(phi);
-      ekf_.x_ << x, y, vx, vy, 0;*/
+      x_ << x, y, vx, vy, 0;
 
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       /**
       Initialize state.
       */
-      /*ekf_.x_[0] = measurement_pack.raw_measurements_[0];
-      ekf_.x_[1] = measurement_pack.raw_measurements_[1];
-      cout << ekf_.x_ << endl << endl;
-      cout << measurement_pack.raw_measurements_ << endl << endl;*/
+      x_[0] = measurement_pack.raw_measurements_[0];
+      x_[1] = measurement_pack.raw_measurements_[1];
     }
 
     // Initialise P
@@ -120,10 +123,24 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
    ****************************************************************************/
 
   // Calculate dt
-  float dt = measurement_pack.timestamp_ - previous_timestamp_;
+  double dt = measurement_pack.timestamp_ - previous_timestamp_;
   dt /= 1000000.0;
   previous_timestamp_ = measurement_pack.timestamp_;
   
+  // Predict where things will be at this time now
+  Prediction(dt);
+
+  // Update
+  if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
+
+    // Update Radar
+    UpdateRadar(measurement_pack);
+  }
+  else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
+
+    // Update Lidar
+    UpdateLidar(measurement_pack);
+  }
 
 }
 
@@ -134,11 +151,11 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
  */
 void UKF::Prediction(double delta_t) {
   /**
-  TODO:
-
-  Complete this function! Estimate the object's location. Modify the state
-  vector, x_. Predict sigma points, the state, and the state covariance matrix.
+  TODO: the state, and the state covariance matrix.
   */
+
+  GenerateSigmaPoints();
+  AugmentedSigmaPoints();
 
   x_;
 }
@@ -183,7 +200,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
 }
 
-void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out) {
+void UKF::GenerateSigmaPoints() {
 
   // Calculate square root of P
   MatrixXd A = P_.llt().matrixL();
@@ -199,13 +216,10 @@ void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out) {
   }
 
   // Print result
-  //std::cout << "Xsig = " << std::endl << Xsig << std::endl;
-
-  // Write result
-  *Xsig_out = Xsig_pred_;
+  std::cout << "Xsig = " << std::endl << Xsig_pred_ << std::endl;
 }
 
-void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
+void UKF::AugmentedSigmaPoints() {
 
   // define spreading parameter
   double lambda = 3 - n_aug_;
@@ -242,13 +256,10 @@ void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
   }
   
   // Print result
-//  std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
-
-  // Write result
-  *Xsig_out = Xsig_aug;
+  std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
 }
 
-void UKF::SigmaPointPrediction(MatrixXd* Xsig_out) {
+void UKF::SigmaPointPrediction() {
 
   MatrixXd Xsig_aug;
   long long delta_t = 0;
@@ -299,10 +310,8 @@ void UKF::SigmaPointPrediction(MatrixXd* Xsig_out) {
   }
 
   // Print result
-//  std::cout << "Xsig_pred = " << std::endl << Xsig_pred << std::endl;
+  std::cout << "Xsig_pred = " << std::endl << Xsig_pred_ << std::endl;
 
-  // Write result
-  *Xsig_out = Xsig_pred_;
 }
 
 
