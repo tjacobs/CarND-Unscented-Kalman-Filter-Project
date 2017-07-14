@@ -52,6 +52,9 @@ UKF::UKF() {
   // Predicted sigma points matrix
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_x_ + 1);
 
+  //create sigma point matrix
+  Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
+
   // Augmented dimension
   n_aug_ = 7;
 
@@ -154,10 +157,19 @@ void UKF::Prediction(double delta_t) {
   TODO: the state, and the state covariance matrix.
   */
 
+  printf("GenerateSigmaPoints:\n");
   GenerateSigmaPoints();
+  fflush(stdout);
+  printf("AugmentedSigmaPoints:\n");
   AugmentedSigmaPoints();
+  fflush(stdout);
+  printf("SigmaPointPrediction:\n");
+  SigmaPointPrediction(delta_t);
+  fflush(stdout);
+  printf("PredictMeanAndCovariance:\n");
+  PredictMeanAndCovariance( );
+  fflush(stdout);
 
-  x_;
 }
 
 /**
@@ -230,9 +242,6 @@ void UKF::AugmentedSigmaPoints() {
   //create augmented state covariance
   MatrixXd P_aug = MatrixXd(7, 7);
 
-  //create sigma point matrix
-  MatrixXd Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
-
   //create augmented mean state
   x_aug.head(5) = x_;
   x_aug(5) = 0;
@@ -259,10 +268,7 @@ void UKF::AugmentedSigmaPoints() {
   std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
 }
 
-void UKF::SigmaPointPrediction() {
-
-  MatrixXd Xsig_aug;
-  long long delta_t = 0;
+void UKF::SigmaPointPrediction(long long delta_t) {
 
   //predict sigma points
   for (int i = 0; i< 2*n_aug_+1; i++)
@@ -315,7 +321,7 @@ void UKF::SigmaPointPrediction() {
 }
 
 
-void UKF::PredictMeanAndCovariance(VectorXd* x_out, MatrixXd* P_out) {
+void UKF::PredictMeanAndCovariance() {
 
   //define spreading parameter
   double lambda = 3 - n_aug_;
@@ -352,10 +358,6 @@ void UKF::PredictMeanAndCovariance(VectorXd* x_out, MatrixXd* P_out) {
   std::cout << x_ << std::endl;
   std::cout << "Predicted covariance matrix" << std::endl;
   std::cout << P_ << std::endl;
-
-  // Write result
-  *x_out = x_;
-  *P_out = P_;
 }
 
 void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out) {
