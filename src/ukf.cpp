@@ -20,6 +20,9 @@ UKF::UKF() {
   // State dimension
   n_x_ = 5;
 
+  // Augmented dimension
+  n_aug_ = 7;
+
   // initial state vector
   x_ = VectorXd(5);
 
@@ -50,13 +53,10 @@ UKF::UKF() {
   std_radrd_ = 0.3;
 
   // Predicted sigma points matrix
-  Xsig_pred_ = MatrixXd(n_x_, 2 * n_x_ + 1);
+  Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
 
   //create sigma point matrix
   Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
-
-  // Augmented dimension
-  n_aug_ = 7;
 
   // Weights of sigma points
   weights_ = VectorXd(2*n_aug_+1);
@@ -160,12 +160,15 @@ void UKF::Prediction(double delta_t) {
   printf("GenerateSigmaPoints:\n");
   GenerateSigmaPoints();
   fflush(stdout);
+
   printf("AugmentedSigmaPoints:\n");
   AugmentedSigmaPoints();
   fflush(stdout);
+
   printf("SigmaPointPrediction:\n");
   SigmaPointPrediction(delta_t);
   fflush(stdout);
+
   printf("PredictMeanAndCovariance:\n");
   PredictMeanAndCovariance( );
   fflush(stdout);
@@ -233,7 +236,7 @@ void UKF::GenerateSigmaPoints() {
 
 void UKF::AugmentedSigmaPoints() {
 
-  // define spreading parameter
+  // Define spreading parameter
   double lambda = 3 - n_aug_;
 
   //create augmented mean vector
@@ -250,13 +253,17 @@ void UKF::AugmentedSigmaPoints() {
   //create augmented covariance matrix
   P_aug.fill(0.0);
   P_aug.topLeftCorner(5,5) = P_;
+  
   P_aug(5,5) = std_a_ * std_a_;
   P_aug(6,6) = std_yawdd_ * std_yawdd_;
 
-  //create square root matrix
+  // Create square root matrix
   MatrixXd L = P_aug.llt().matrixL();
 
-  //create augmented sigma points
+  std::cout << "x_aug:" << std::endl << x_aug << std::endl;
+  std::cout << "Xsig_aug:" << std::endl << Xsig_aug << std::endl;
+
+  // Create augmented sigma points
   Xsig_aug.col(0)  = x_aug;
   for (int i = 0; i< n_aug_; i++)
   {
@@ -270,8 +277,8 @@ void UKF::AugmentedSigmaPoints() {
 
 void UKF::SigmaPointPrediction(long long delta_t) {
 
-  //predict sigma points
-  for (int i = 0; i< 2*n_aug_+1; i++)
+  // Predict sigma points
+  for (int i = 0; i < 2*n_aug_+1; i++)
   {
     //extract values for better readability
     double p_x = Xsig_aug(0,i);
@@ -299,7 +306,7 @@ void UKF::SigmaPointPrediction(long long delta_t) {
     double yaw_p = yaw + yawd*delta_t;
     double yawd_p = yawd;
 
-    //add noise
+    // Add noise
     px_p = px_p + 0.5*nu_a*delta_t*delta_t * cos(yaw);
     py_p = py_p + 0.5*nu_a*delta_t*delta_t * sin(yaw);
     v_p = v_p + nu_a*delta_t;
@@ -313,6 +320,8 @@ void UKF::SigmaPointPrediction(long long delta_t) {
     Xsig_pred_(2,i) = v_p;
     Xsig_pred_(3,i) = yaw_p;
     Xsig_pred_(4,i) = yawd_p;
+
+    //std::cout << "Xsig_pred_: " << i << std::endl << Xsig_pred_ << std::endl;
   }
 
   // Print result
