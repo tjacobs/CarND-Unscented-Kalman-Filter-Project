@@ -47,10 +47,10 @@ UKF::UKF() {
   std_radr_ = 0.3;
 
   // Radar measurement noise standard deviation angle in rad
-  std_radphi_ = 0.03;  // 0.0175;
+  std_radphi_ = 0.0175;
 
   // Radar measurement noise standard deviation radius change in m/s
-  std_radrd_ = 0.3; // 0.1;
+  std_radrd_ = 0.1;
 
   // Predicted sigma points matrix
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
@@ -154,16 +154,16 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
  */
 void UKF::Prediction(double delta_t) {
 
-  printf("GenerateSigmaPoints:\n");
+//  printf("GenerateSigmaPoints:\n");
   GenerateSigmaPoints();
 
-  printf("AugmentedSigmaPoints:\n");
+//  printf("AugmentedSigmaPoints:\n");
   AugmentedSigmaPoints();
 
-  printf("SigmaPointPrediction:\n");
+//  printf("SigmaPointPrediction:\n");
   SigmaPointPrediction(delta_t);
 
-  printf("PredictMeanAndCovariance:\n");
+//  printf("PredictMeanAndCovariance:\n");
   PredictMeanAndCovariance( );
 
 }
@@ -208,7 +208,7 @@ void UKF::GenerateSigmaPoints() {
   }
 
   // Print result
-  std::cout << "Xsig = " << std::endl << Xsig_pred_ << std::endl;
+//  std::cout << "Xsig = " << std::endl << Xsig_pred_ << std::endl;
 }
 
 void UKF::AugmentedSigmaPoints() {
@@ -237,8 +237,8 @@ void UKF::AugmentedSigmaPoints() {
   // Create square root matrix
   MatrixXd L = P_aug.llt().matrixL();
 
-  std::cout << "x_aug:" << std::endl << x_aug << std::endl;
-  std::cout << "Xsig_aug:" << std::endl << Xsig_aug << std::endl;
+//  std::cout << "x_aug:" << std::endl << x_aug << std::endl;
+//  std::cout << "Xsig_aug:" << std::endl << Xsig_aug << std::endl;
 
   // Create augmented sigma points
   Xsig_aug.col(0)  = x_aug;
@@ -249,7 +249,7 @@ void UKF::AugmentedSigmaPoints() {
   }
   
   // Print result
-  std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
+//  std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
 }
 
 void UKF::SigmaPointPrediction(long long delta_t) {
@@ -302,8 +302,7 @@ void UKF::SigmaPointPrediction(long long delta_t) {
   }
 
   // Print result
-  std::cout << "Xsig_pred = " << std::endl << Xsig_pred_ << std::endl;
-
+//  std::cout << "Xsig_pred = " << std::endl << Xsig_pred_ << std::endl;
 }
 
 void UKF::PredictMeanAndCovariance() {
@@ -339,18 +338,16 @@ void UKF::PredictMeanAndCovariance() {
   }
 
   // Print result
-  std::cout << "Predicted state" << std::endl;
-  std::cout << x_ << std::endl;
-  std::cout << "Predicted covariance matrix" << std::endl;
-  std::cout << P_ << std::endl;
+//  std::cout << "Predicted state" << std::endl;
+//  std::cout << x_ << std::endl;
+//  std::cout << "Predicted covariance matrix" << std::endl;
+//  std::cout << P_ << std::endl;
 }
 
 void UKF::PredictAndUpdate(int n_z, VectorXd z) {
 
   // Define spreading parameter
   double lambda = 3 - n_aug_;
-
-  cout << "HM1      ";
 
   // Z prediction
   VectorXd z_pred = VectorXd(n_z);
@@ -369,8 +366,6 @@ void UKF::PredictAndUpdate(int n_z, VectorXd z) {
     weights_(i) = weight;
   }
 
-  cout << "HM2      ";
-
   // Transform sigma points into measurement space
   for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //2n+1 simga points
 
@@ -378,31 +373,25 @@ void UKF::PredictAndUpdate(int n_z, VectorXd z) {
     double p_x = Xsig_pred_(0,i);
     double p_y = Xsig_pred_(1,i);
 
-  cout << "HM2.1      ";
     if(n_z == 2) {
       // Measurement model
       Zsig(0, i) = p_x;
       Zsig(1, i) = p_y;
-  cout << "HM2.2      ";
 
     }
     else {
-  cout << "HM2.3      ";
       double v  = Xsig_pred_(2,i);
       double yaw = Xsig_pred_(3,i);
 
       double v1 = cos(yaw)*v;
       double v2 = sin(yaw)*v;
 
-    cout << "HM2.4      ";
       // Measurement model
       Zsig(0,i) = sqrt(p_x*p_x + p_y*p_y);                        // r
       Zsig(1,i) = atan2(p_y,p_x);                                 // phi
       Zsig(2,i) = (p_x*v1 + p_y*v2 ) / sqrt(p_x*p_x + p_y*p_y);   // r_dot
-  cout << "HM2.5      ";
     }
   }
-  cout << "HM3      ";
 
   // Mean predicted measurement
   z_pred.fill(0.0);
@@ -424,7 +413,6 @@ void UKF::PredictAndUpdate(int n_z, VectorXd z) {
 
     S = S + weights_(i) * z_diff * z_diff.transpose();
   }
-  cout << "HM4      ";
 
   // Add measurement noise covariance matrix
   MatrixXd R = MatrixXd(n_z, n_z);
@@ -440,8 +428,8 @@ void UKF::PredictAndUpdate(int n_z, VectorXd z) {
   }
 
   // Print result
-  std::cout << "z_pred: " << std::endl << z_pred << std::endl;
-  std::cout << "S: " << std::endl << S << std::endl;
+//  std::cout << "z_pred: " << std::endl << z_pred << std::endl;
+//  std::cout << "S: " << std::endl << S << std::endl;
 
 
   // -----------       Update state       -------------
@@ -485,15 +473,15 @@ void UKF::PredictAndUpdate(int n_z, VectorXd z) {
   MatrixXd K = Tc * S.inverse();
 
   // Residual
-  cout << "z:";
-  cout << std::endl;
-  cout << z;
-  cout << std::endl;
-  cout << std::endl;
-  cout << "z_pred: ";
-  cout << z_pred;
+//  cout << "z:";
+//  cout << std::endl;
+//  cout << z;
+//  cout << std::endl;
+//  cout << std::endl;
+//  cout << "z_pred: ";
+//  cout << z_pred;
   VectorXd z_diff = z - z_pred;
-  cout << "---";
+//  cout << "---";
 
   // Angle normalization
   if(n_z == 3) {
