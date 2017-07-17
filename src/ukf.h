@@ -34,6 +34,15 @@ public:
   ///* Augmented sigma point matrix
   MatrixXd Xsig_aug;
 
+  // Mean predicted measurement
+  VectorXd z_pred_;
+
+  // Measurement covariance matrix S
+  MatrixXd S_;
+
+  // Create matrix for sigma points in measurement space
+  MatrixXd Zsig_;
+
   ///* Process noise standard deviation longitudinal acceleration in m/s^2
   double std_a_;
 
@@ -60,6 +69,9 @@ public:
 
   ///* State dimension
   int n_x_;
+
+  // Set measurement dimension, radar can measure r, phi, and r_dot
+  int n_z_;
 
   ///* Augmented state dimension
   int n_aug_;
@@ -110,8 +122,8 @@ public:
   void AugmentedSigmaPoints();
   void SigmaPointPrediction(long long delta_t);
   void PredictMeanAndCovariance();
-  void PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out);
-  void UpdateState(VectorXd* x_out, MatrixXd* P_out);
+  void PredictRadarMeasurement();
+  void UpdateState(VectorXd z);
 
 };
 
