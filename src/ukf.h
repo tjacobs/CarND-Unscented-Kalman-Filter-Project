@@ -32,7 +32,7 @@ public:
   MatrixXd Xsig_pred_;
 
   ///* Augmented sigma point matrix
-  MatrixXd Xsig_aug;
+  MatrixXd Xsig_aug_;
 
   // Measurement covariance matrix S
   MatrixXd S_;
@@ -116,7 +116,7 @@ public:
 
   void GenerateSigmaPoints();
   void AugmentedSigmaPoints();
-  void SigmaPointPrediction(long long delta_t);
+  void SigmaPointPrediction(double delta_t);
   void PredictMeanAndCovariance();
   void PredictAndUpdate(int n_z, VectorXd z);
 
