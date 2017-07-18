@@ -1,5 +1,4 @@
 #include "ukf.h"
-
 #include "Eigen/Dense"
 #include <iostream>
 
@@ -55,7 +54,7 @@ UKF::UKF() {
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
 
   //create sigma point matrix
-//  Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
+  Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
 
   // Weights of sigma points
   weights_ = VectorXd(2 * n_aug_ + 1);
