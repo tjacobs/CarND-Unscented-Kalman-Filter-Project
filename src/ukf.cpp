@@ -53,7 +53,7 @@ UKF::UKF() {
   // Predicted sigma points matrix
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
 
-  //create sigma point matrix
+  // Sigma point matrix
   Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
 
   // Weights of sigma points
@@ -181,7 +181,7 @@ void UKF::UpdateLidar(MeasurementPackage measurement_pack) {
   You'll also need to calculate the lidar NIS.
   */
 
-  //PredictAndUpdate(2, measurement_pack.raw_measurements_);
+  PredictAndUpdate(2, measurement_pack.raw_measurements_);
 }
 
 /**
@@ -350,60 +350,43 @@ void UKF::PredictMeanAndCovariance() {
 
 void UKF::PredictAndUpdate(int n_z, VectorXd z) {
 
-  // Define spreading parameter
-  double lambda = 3 - n_aug_;
-
-  // Z prediction
-  VectorXd z_pred = VectorXd(n_z);
-
-  // Measurement covariance matrix S
-  MatrixXd S = MatrixXd(n_z, n_z);
-
   // Create matrix for sigma points in measurement space
   MatrixXd Zsig = MatrixXd(n_z, 2 * n_aug_ + 1);
-
-  // Set vector for weights_
-  double weight_0 = lambda/(lambda+n_aug_);
-  weights_(0) = weight_0;
-  for (int i=1; i<2*n_aug_+1; i++) {  
-    double weight = 0.5/(n_aug_+lambda);
-    weights_(i) = weight;
-  }
 
   // Transform sigma points into measurement space
   for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //2n+1 simga points
 
     // extract values for better readibility
-    double p_x = Xsig_pred_(0,i);
-    double p_y = Xsig_pred_(1,i);
+    double p_x = Xsig_pred_(0, i);
+    double p_y = Xsig_pred_(1, i);
 
     if(n_z == 2) {
       // Measurement model
       Zsig(0, i) = p_x;
       Zsig(1, i) = p_y;
-
     }
     else {
-      double v  = Xsig_pred_(2,i);
-      double yaw = Xsig_pred_(3,i);
-
+      double v  = Xsig_pred_(2, i);
+      double yaw = Xsig_pred_(3, i);
       double v1 = cos(yaw)*v;
       double v2 = sin(yaw)*v;
 
       // Measurement model
-      Zsig(0,i) = sqrt(p_x*p_x + p_y*p_y);                        // r
-      Zsig(1,i) = atan2(p_y,p_x);                                 // phi
-      Zsig(2,i) = (p_x*v1 + p_y*v2 ) / sqrt(p_x*p_x + p_y*p_y);   // r_dot
+      Zsig(0, i) = sqrt(p_x*p_x + p_y*p_y);                         // r
+      Zsig(1, i) = atan2(p_y, p_x);                                 // phi
+      Zsig(2, i) = (p_x*v1 + p_y*v2 ) / sqrt(p_x*p_x + p_y*p_y);    // r_dot
     }
   }
 
   // Mean predicted measurement
+  VectorXd z_pred = VectorXd(n_z);
   z_pred.fill(0.0);
-  for (int i=0; i < 2*n_aug_+1; i++) {
+  for (int i = 0; i < 2 * n_aug_ + 1; i++) {
       z_pred = z_pred + weights_(i) * Zsig.col(i);
   }
 
   // Measurement covariance matrix S
+  MatrixXd S = MatrixXd(n_z, n_z);
   S.fill(0.0);
   for (int i = 0; i < 2 * n_aug_ + 1; i++) {  // 2n+1 simga points
     // Residual
@@ -415,6 +398,7 @@ void UKF::PredictAndUpdate(int n_z, VectorXd z) {
       while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
     }
 
+    // Calculate S column
     S = S + weights_(i) * z_diff * z_diff.transpose();
   }
 
@@ -435,20 +419,10 @@ void UKF::PredictAndUpdate(int n_z, VectorXd z) {
 //  std::cout << "z_pred: " << std::endl << z_pred << std::endl;
 //  std::cout << "S: " << std::endl << S << std::endl;
 
-
   // -----------       Update state       -------------
 
-  // Set vector for weights_
-  weights_(0) = weight_0;
-  for (int i=1; i<2*n_aug_+1; i++) {  
-    double weight = 0.5/(n_aug_+lambda);
-    weights_(i) = weight;
-  }
-
-  // Create matrix for cross correlation Tc
-  MatrixXd Tc = MatrixXd(n_x_, n_z);
-
   // Calculate cross correlation matrix
+  MatrixXd Tc = MatrixXd(n_x_, n_z);
   Tc.fill(0.0);
   for (int i = 0; i < 2 * n_aug_ + 1; i++) {  // 2n+1 simga points
 
@@ -491,6 +465,15 @@ void UKF::PredictAndUpdate(int n_z, VectorXd z) {
   if(n_z == 3) {
     while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
     while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
+  }
+
+  if(n_z == 2) {
+    // Calculate NIS
+    NIS_laser_ = z_diff.transpose() * S.inverse() * z_diff;
+  }
+  else {
+    // Calculate NIS
+    NIS_radar_ = z_diff.transpose() * S.inverse() * z_diff;
   }
 
   // Update state mean and covariance matrix
