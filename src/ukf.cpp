@@ -106,7 +106,7 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
       float y = rho * sin(phi);
       float vx = rho_dot * cos(phi);
       float vy = rho_dot * sin(phi);
-      x_ << x, y, vx, vy, 0;
+      x_ << x, y, 0, 0, 0;
 
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
@@ -329,22 +329,9 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
     double p_x = Xsig_pred_(0, i);
     double p_y = Xsig_pred_(1, i);
 
-    if(n_z == 2) {
-      // Measurement model
-      Zsig(0, i) = p_x;
-      Zsig(1, i) = p_y;
-    }
-    else {
-      double v  = Xsig_pred_(2, i);
-      double yaw = Xsig_pred_(3, i);
-      double v1 = cos(yaw)*v;
-      double v2 = sin(yaw)*v;
-
-      // Measurement model
-      Zsig(0, i) = sqrt(p_x*p_x + p_y*p_y);                         // r
-      Zsig(1, i) = atan2(p_y, p_x);                                 // phi
-      Zsig(2, i) = (p_x*v1 + p_y*v2 ) / sqrt(p_x*p_x + p_y*p_y);    // r_dot
-    }
+    // Measurement model
+    Zsig(0, i) = p_x;
+    Zsig(1, i) = p_y;
   }
 
   // Mean predicted measurement
@@ -361,27 +348,14 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
     // Residual
     VectorXd z_diff = Zsig.col(i) - z_pred;
 
-    // Angle normalization
-    if(n_z == 3) {
-      while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
-      while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
-    }
-
     // Calculate S column
     S = S + weights_(i) * z_diff * z_diff.transpose();
   }
 
   // Add measurement noise covariance matrix
   MatrixXd R = MatrixXd(n_z, n_z);
-  if(n_z == 2) {
-    R <<    std_laspx_*std_laspx_, 0,
-            0,                    std_laspy_*std_laspy_;
-  }
-  else {
-    R <<    std_radr_ * std_radr_, 0,                         0,
-            0,                     std_radphi_ * std_radphi_, 0,
-            0,                     0,                         std_radrd_ * std_radrd_;
-  }
+  R <<    std_laspx_*std_laspx_, 0,
+          0,                    std_laspy_*std_laspy_;
   S = S + R;
 
   // Print result
@@ -398,21 +372,9 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
     // Residual
     VectorXd z_diff = Zsig.col(i) - z_pred;
     
-    // Angle normalization
-    if(n_z == 3) {
-      while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
-      while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
-    }
-
     // State difference
     VectorXd x_diff = Xsig_pred_.col(i) - x_;
     
-    // Angle normalization
-    if(n_z == 3) {
-      while (x_diff(3)> M_PI) x_diff(3)-=2.*M_PI;
-      while (x_diff(3)<-M_PI) x_diff(3)+=2.*M_PI;
-    }
-
     Tc = Tc + weights_(i) * x_diff * z_diff.transpose();
   }
 
@@ -430,20 +392,8 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   VectorXd z_diff = z - z_pred;
 //  cout << "---";
 
-  // Angle normalization
-  if(n_z == 3) {
-    while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
-    while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
-  }
-
-  if(n_z == 2) {
-    // Calculate NIS
-    NIS_laser_ = z_diff.transpose() * S.inverse() * z_diff;
-  }
-  else {
-    // Calculate NIS
-    NIS_radar_ = z_diff.transpose() * S.inverse() * z_diff;
-  }
+  // Calculate NIS
+  NIS_laser_ = z_diff.transpose() * S.inverse() * z_diff;
 
   // Update state mean and covariance matrix
   x_ = x_ + K * z_diff;
@@ -474,22 +424,15 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     double p_x = Xsig_pred_(0, i);
     double p_y = Xsig_pred_(1, i);
 
-    if(n_z == 2) {
-      // Measurement model
-      Zsig(0, i) = p_x;
-      Zsig(1, i) = p_y;
-    }
-    else {
-      double v  = Xsig_pred_(2, i);
-      double yaw = Xsig_pred_(3, i);
-      double v1 = cos(yaw)*v;
-      double v2 = sin(yaw)*v;
+    double v  = Xsig_pred_(2, i);
+    double yaw = Xsig_pred_(3, i);
+    double v1 = cos(yaw)*v;
+    double v2 = sin(yaw)*v;
 
-      // Measurement model
-      Zsig(0, i) = sqrt(p_x*p_x + p_y*p_y);                         // r
-      Zsig(1, i) = atan2(p_y, p_x);                                 // phi
-      Zsig(2, i) = (p_x*v1 + p_y*v2 ) / sqrt(p_x*p_x + p_y*p_y);    // r_dot
-    }
+    // Measurement model
+    Zsig(0, i) = sqrt(p_x*p_x + p_y*p_y);                         // r
+    Zsig(1, i) = atan2(p_y, p_x);                                 // phi
+    Zsig(2, i) = (p_x*v1 + p_y*v2 ) / sqrt(p_x*p_x + p_y*p_y);    // r_dot
   }
 
   // Mean predicted measurement
@@ -507,10 +450,8 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     VectorXd z_diff = Zsig.col(i) - z_pred;
 
     // Angle normalization
-    if(n_z == 3) {
-      while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
-      while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
-    }
+    while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
+    while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
 
     // Calculate S column
     S = S + weights_(i) * z_diff * z_diff.transpose();
@@ -518,15 +459,9 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   // Add measurement noise covariance matrix
   MatrixXd R = MatrixXd(n_z, n_z);
-  if(n_z == 2) {
-    R <<    std_laspx_*std_laspx_, 0,
-            0,                    std_laspy_*std_laspy_;
-  }
-  else {
-    R <<    std_radr_ * std_radr_, 0,                         0,
-            0,                     std_radphi_ * std_radphi_, 0,
-            0,                     0,                         std_radrd_ * std_radrd_;
-  }
+  R <<    std_radr_ * std_radr_, 0,                         0,
+          0,                     std_radphi_ * std_radphi_, 0,
+          0,                     0,                         std_radrd_ * std_radrd_;
   S = S + R;
 
   // Print result
@@ -544,19 +479,15 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     VectorXd z_diff = Zsig.col(i) - z_pred;
     
     // Angle normalization
-    if(n_z == 3) {
-      while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
-      while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
-    }
+    while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
+    while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
 
     // State difference
     VectorXd x_diff = Xsig_pred_.col(i) - x_;
     
     // Angle normalization
-    if(n_z == 3) {
-      while (x_diff(3)> M_PI) x_diff(3)-=2.*M_PI;
-      while (x_diff(3)<-M_PI) x_diff(3)+=2.*M_PI;
-    }
+    while (x_diff(3)> M_PI) x_diff(3)-=2.*M_PI;
+    while (x_diff(3)<-M_PI) x_diff(3)+=2.*M_PI;
 
     Tc = Tc + weights_(i) * x_diff * z_diff.transpose();
   }
@@ -576,19 +507,10 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 //  cout << "---";
 
   // Angle normalization
-  if(n_z == 3) {
-    while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
-    while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
-  }
+  while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
+  while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
 
-  if(n_z == 2) {
-    // Calculate NIS
-    NIS_laser_ = z_diff.transpose() * S.inverse() * z_diff;
-  }
-  else {
-    // Calculate NIS
-    NIS_radar_ = z_diff.transpose() * S.inverse() * z_diff;
-  }
+  NIS_radar_ = z_diff.transpose() * S.inverse() * z_diff;
 
   // Update state mean and covariance matrix
   x_ = x_ + K * z_diff;
